@@ -1,0 +1,283 @@
+﻿@model List<Producto>
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+
+
+<div class="d-flex align-items-start" id="productos">
+@foreach(var item in Model)
+{
+
+        <div class="card" valor="@item.IdProducto" value="@item.IdProducto" id="@("idpro"+@item.IdProducto)" style="width: 8rem;" estado="0" onclick="listProducto(this)">
+            <img src="@item.Img" class="card-img-top" alt="...">
+            <div class="card-body">
+                <p class="card-text">@item.NombreProducto </p>
+                <p id="@("precioid"+@item.IdProducto)" class="card-text">@item.PrecioProducto </p>
+            </div>
+        </div>
+ 
+}
+
+</div>
+
+<hr />
+<div class="card">
+    <div class="card-header">
+        Compras
+    </div>
+    <div class="card-body">
+
+        <div class="row">
+            <div class="col-sm-4">
+                <label class="form-label">Numero Documento</label>
+                <input id="idNumeroDoc" class="form-control form-control-sm" type="text">
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">Nombre</label>
+                <input class="form-control form-control-sm" type="text" id="idNombre">
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label">Fecha</label>
+
+
+
+                <div class="form-group">
+                    <div class='input-group date' id='datetimepicker1'>
+                        <input id="idFecha" type='text' class="form-control" />
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar">
+                            </span>
+                        </span>
+                    </div>
+                </div>
+                
+
+
+            </div>
+        </div>
+       
+      
+        <hr />
+        <div class="row">
+            <div class="col-sm-12">
+                <table class="table table-hover" id="tbProducto">
+                    <thead>
+                        <tr class="table-dark">
+                            <th></th>
+                            <th>Producto</th>
+                            <th>Precio</th>
+                            <th>Cantidad</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row align-items-end">
+            
+            <div class="col-sm-3">
+                <button class="btn btn-success btn-sm" id="btnAgregar">Crear compra</button>
+            
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+
+
+@section Scripts{
+
+    <script>
+      
+
+        function listProducto(p) {
+
+            let idP = p.getAttribute("valor")
+
+
+            if (p.getAttribute("estado") == 1) {
+             
+                let cantidad = Number($("#cant" + idP).val())
+                cantidad++
+                    ;
+                $("#cant" + idP).val(cantidad)
+                console.log(cantidad)
+            }
+
+            if (p.getAttribute("estado") == 0) {
+                jQuery.ajax({
+                    url: '@Url.Action("GetProduct","Home")',
+                    type: "POST",
+                    data: JSON.stringify({ IdProducto: idP }),
+                    datatype: "json",
+                    contentType: "application/json; charset=utf-8",
+                    success: function (data) {
+
+
+                        insertHtml(data)
+
+                        p.setAttribute("estado", 1);
+
+                    }
+
+                })
+            }
+
+
+            if (p.getAttribute("estado") == 1) {
+                let ide = document.getElementById("precioid" + idP)
+
+             
+                let cant = Number(ide.textContent) * Number($("#cant" + idP).val())
+
+
+
+                $("#total" + idP).html(cant)
+            }
+
+
+
+
+
+        }
+
+
+
+
+        function insertHtml(data) {
+
+            html = `<tr id="fila${data.id}" >
+                            <td><i id="${data.id}" class="bi bi-trash-fill" onclick="eliminar(this)" ></i></td>
+                            <td>${data.nombre}</td>
+                            <td><p id="precio${data.id}">${data.precio}<p></td>
+                            <td><input type="number" id="cant${data.id}" num="${data.id}" value="1" onchange="totalInput(this)"  name="tentacles"
+                                            min = "1" max = "100" > </td>
+                            <td><p id="total${data.id}">${data.precio}<p></td>
+                            </tr>`;
+
+
+
+            $("tbody").append(html);
+
+
+        }
+
+        function eliminar(ele) {
+
+            let ide = document.getElementById('idpro' + ele.id)
+
+            ide.setAttribute("estado", 0);
+
+            $('#fila' + ele.id).remove();
+
+
+        }
+
+        function totalInput(id) {
+            let getid = id.getAttribute("num")
+
+
+            let ide = document.getElementById("precioid" + getid)
+
+            let cant = Number(ide.textContent) * Number($("#cant" + getid).val())
+
+
+
+            $("#total" + getid).html(cant)
+        }
+
+
+        $("#btnAgregar").on("click", function () {
+
+            let oDetalle_Compra = []
+            let total = 0;
+
+            $("#tbProducto > tbody > tr").each(function (i, tr) {
+
+                oDetalle_Compra.push(
+                    {
+                        Producto: $(tr).find('td:eq(1)').text(),
+                        Precio: $(tr).find('td:eq(2)').text(),
+                        Cantidad: $(tr).find('td:eq(3) input').val(),
+                        Total: $(tr).find('td:eq(4)').text()
+                    }
+                )
+                total = total + parseFloat($(tr).find('td:eq(4)').text())
+         
+            })
+
+            console.log(oDetalle_Compra)
+
+            let fechatxt = $("#idFecha").val()
+
+
+            function convertFecha(responseDate) {
+                let dateComponents = responseDate.split('T');
+                let datePieces = dateComponents[0].split("-");
+
+                return (new Date(datePieces[2], (datePieces[1] - 1), datePieces[0]
+                ))
+            }
+
+            let oCompraVM = {
+                oCompra: {
+                    NumeroDocumento: $("#idNumeroDoc").val(),
+                    Nombre: $("#idNombre").val(),
+                    Total: total,
+                    Fecha: convertFecha(fechatxt)
+                },
+                oDetalleCompra: oDetalle_Compra
+            }
+
+            jQuery.ajax({
+                url: '@Url.Action("Index","Home")',
+                type: "POST",
+                data: JSON.stringify(oCompraVM),
+                datatype: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+
+                    if (data.respuesta) {
+                        Swal.fire({
+                            position: 'top-end',
+                            icon: 'success',
+                            title: 'Compra creada',
+                            showConfirmButton: false,
+                            timer: 1500
+                        })
+                    }
+
+
+                }
+
+            })
+
+        })
+
+
+
+        $(function () {
+            $('#datetimepicker1').datetimepicker({
+                viewMode: 'days',
+                format: 'DD-MM-YYYY'
+            });
+        });
+
+
+
+
+
+
+
+
+
+    </script>
+
+}
+
